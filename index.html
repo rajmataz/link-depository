@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🔗 Link Depository</title>
+  <style>
+    :root {
+      --bg: #f0f2f5;
+      --text: #333;
+      --accent: #0078d7;
+    }
+    [data-theme="dark"] {
+      --bg: #1e1e1e;
+      --text: #e0e0e0;
+      --accent: #4caf50;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    header, nav, main {
+      margin-bottom: 20px;
+    }
+    .pane {
+      display: flex;
+      gap: 20px;
+    }
+    #linkList {
+      flex: 2;
+      border: 1px solid var(--accent);
+      padding: 10px;
+      background: #fff;
+    }
+    #previewPane, #detailPane {
+      flex: 1;
+      border: 1px dashed var(--accent);
+      padding: 10px;
+      background: #fff;
+    }
+    .linkItem {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #eef;
+      margin-bottom: 5px;
+      padding: 5px;
+      border-radius: 4px;
+    }
+    .linkItem input[type="checkbox"] {
+      margin-right: 5px;
+    }
+    .actions button {
+      margin-right: 5px;
+    }
+    select, button {
+      padding: 5px;
+      margin-right: 5px;
+    }
+    #settings {
+      float: right;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body data-theme="light">
+  <header>
+    <h1>🔗 My Link Depository</h1>
+    <div>
+      <select id="categoryFilter">
+        <option value="">All</option>
+        <option>Favorites</option>
+        <option>Personal</option>
+        <option>Work</option>
+        <option>Research</option>
+        <option>Archived</option>
+        <option>Recently viewed</option>
+      </select>
+      <select id="viewMode">
+        <option>List</option>
+        <option>Tiles</option>
+        <option>Small Icon</option>
+        <option>Medium Icon</option>
+        <option>Large Icon</option>
+        <option>Detail</option>
+        <option>Compact</option>
+        <option>Content</option>
+      </select>
+      <button onclick="toggleTheme()">Toggle Theme</button>
+      <button onclick="exportLinks()">Export</button>
+      <input type="file" id="importFile" onchange="importLinks(event)" />
+      <span id="settings">⚙️</span>
+    </div>
+  </header>
+
+  <nav>
+    <form id="linkForm">
+      <input type="url" id="urlInput" placeholder="Paste URL..." required />
+      <input type="text" id="tagInput" placeholder="Tag (e.g. Research)" />
+      <button type="submit">Save</button>
+    </form>
+  </nav>
+
+  <main class="pane">
+    <div id="linkList">
+      <!-- Link items will render here -->
+    </div>
+    <div id="previewPane">🔍 Preview here</div>
+    <div id="detailPane">📋 Details here</div>
+  </main>
+
+  <script>
+    let links = JSON.parse(localStorage.getItem('urlLinks')) || [];
+
+    function renderLinks() {
+      const container = document.getElementById('linkList');
+      container.innerHTML = '';
+      links.forEach(link => {
+        const div = document.createElement('div');
+        div.className = 'linkItem';
+        div.innerHTML = `
+          <input type="checkbox" />
+          <a href="${link.url}" target="_blank" onclick="previewLink('${link.url}')">${link.url}</a>
+          <span>[${link.tag}]</span>
+          <div class="actions">
+            <button onclick="editLink('${link.url}')">✏️</button>
+            <button onclick="archiveLink('${link.url}')">📦</button>
+            <button onclick="shareLink('${link.url}')">📤</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+      localStorage.setItem('urlLinks', JSON.stringify(links));
+    }
+
+    function previewLink(url) {
+      document.getElementById('previewPane').innerHTML = `<iframe src="${url}" width="100%" height="300px"></iframe>`;
+      document.getElementById('detailPane').innerText = 'URL: ' + url;
+    }
+
+    document.getElementById('linkForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const url = document.getElementById('urlInput').value.trim();
+      const tag = document.getElementById('tagInput').value.trim();
+      if (links.some(l => l.url === url)) {
+        alert('🔁 This URL already exists!');
+        return;
+      }
+      links.push({ url, tag });
+      renderLinks();
+      e.target.reset();
+    });
+
+    function editLink(url) {
+      alert('Editing "' + url + '" coming soon!');
+    }
+
+    function archiveLink(url) {
+      links = links.map(l => l.url === url ? { ...l, tag: 'Archived' } : l);
+      renderLinks();
+    }
+
+    function shareLink(url) {
+      const shareText = `Check this out: ${url}`;
+      navigator.share ? navigator.share({ title: "My Link", text: shareText, url }) :
+        alert('Share: ' + shareText);
+    }
+
+    function exportLinks() {
+      const blob = new Blob([JSON.stringify(links)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'urlLinks.json';
+      a.click();
+    }
+
+    function importLinks(event) {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const data = JSON.parse(reader.result);
+          links = [...links, ...data];
+          renderLinks();
+        } catch {
+          alert('Invalid file format!');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function toggleTheme() {
+      document.body.dataset.theme = document.body.dataset.theme === 'light' ? 'dark' : 'light';
+    }
+
+    renderLinks();
+  </script>
+</body>
+</html>
